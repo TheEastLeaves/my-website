@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FBX模型查看器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1f2e, #171c2b);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        header {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            position: relative;
+            border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.8rem;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #aaccff;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 2rem;
+            gap: 2rem;
+            position: relative;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        #viewport {
+            flex: 1;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            background: rgba(10, 20, 35, 0.8);
+            position: relative;
+            min-height: 60vh;
+            transition: all 0.3s ease;
+        }
+        
+        .info-panel {
+            width: 380px;
+            background: rgba(15, 25, 45, 0.85);
+            border-radius: 16px;
+            padding: 1.8rem;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(80, 140, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .panel-title {
+            color: #66ccff;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            border-bottom: 2px solid rgba(102, 204, 255, 0.4);
+            padding-bottom: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .control-group {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(100, 150, 255, 0.15);
+        }
+        
+        .control-title {
+            color: #88ddff;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 0.8rem 0;
+        }
+        
+        label {
+            min-width: 80px;
+            color: #cceeff;
+            font-weight: 500;
+            font-size: 1.05rem;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            background: rgba(0, 50, 100, 0.6);
+            border-radius: 10px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #3399ff;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(51, 153, 255, 0.9);
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #66aaff;
+            transform: scale(1.1);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #1e88e5, #21cbf3);
+            color: white;
+            border: none;
+            padding: 1rem 1.8rem;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 18px rgba(33, 136, 229, 0.4);
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.8rem;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 22px rgba(33, 136, 229, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .stats {
+            background: rgba(0, 15, 35, 0.7);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-size: 1rem;
+            border: 1px solid rgba(66, 166, 255, 0.2);
+        }
+        
+        .stats p {
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .stats p span {
+            min-width: 120px;
+            color: #88ddff;
+            font-weight: 500;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 10, 20, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 10px solid rgba(255, 255, 255, 0.1);
+            border-top: 10px solid #3399ff;
+            border-right: 10px solid #33bbff;
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            margin-bottom: 2rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            font-size: 1.4rem;
+            color: #66ccff;
+            text-align: center;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.8);
+            color: #99aaff;
+            font-size: 1rem;
+            border-top: 1px solid rgba(100, 150, 255, 0.2);
+        }
+        
+        .hide {
+            display: none;
+        }
+        
+        .model-info {
+            background: rgba(0, 25, 50, 0.7);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 5px solid #3399ff;
+        }
+        
+        .model-info h3 {
+            color: #66ccff;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .checkbox-group label {
+            min-width: auto;
+            color: #e0f7fa;
+            font-weight: 500;
+        }
+        
+        input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: #3399ff;
+            cursor: pointer;
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .demo-btn {
+            background: linear-gradient(45deg, #8e24aa, #5e35b1) !important;
+            box-shadow: 0 6px 18px rgba(142, 36, 170, 0.5) !important;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(45deg, #f57c00, #ff5722) !important;
+            box-shadow: 0 6px 18px rgba(245, 124, 0, 0.5) !important;
+        }
+        
+        .error-message {
+            color: #ff6666;
+            font-weight: 500;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .info-panel {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            button {
+                font-size: 1.1rem;
+                padding: 0.9rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Three.js FBX模型查看器</h1>
+        <p class="subtitle">上传FBX格式3D模型进行实时查看与交互操作。支持模型旋转、缩放、线框模式切换和视图控制。</p>
+    </header>
+    
+    <div class="container">
+        <div id="viewport">
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="spinner"></div>
+                <div class="status" id="status">正在加载库和初始化场景...</div>
+                <div class="error-message" id="error-message"></div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h2 class="panel-title">模型控制器</h2>
+            
+            <div class="control-group">
+                <div class="control-title">
+                    <span>旋转控制</span>
+                </div>
+                <div class="slider-container">
+                    <label>X轴:</label>
+                    <input type="range" id="rotate-x" min="0" max="360" value="0">
+                </div>
+                <div class="slider-container">
+                    <label>Y轴:</label>
+                    <input type="range" id="rotate-y" min="0" max="360" value="0">
+                </div>
+                <div class="slider-container">
+                    <label>Z轴:</label>
+                    <input type="range" id="rotate-z" min="0" max="360" value="0">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-title">
+                    <span>缩放控制</span>
+                </div>
+                <div class="slider-container">
+                    <label>大小:</label>
+                    <input type="range" id="scale" min="0.1" max="5" value="1" step="0.01">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-title">
+                    <span>显示设置</span>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="wireframe" name="wireframe">
+                    <label for="wireframe">线框模式</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="axes-helper" name="axes-helper" checked>
+                    <label for="axes-helper">显示坐标轴</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="grid-helper" name="grid-helper" checked>
+                    <label for="grid-helper">显示网格</label>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button id="upload-btn">
+                    <span>上传FBX模型</span>
+                </button>
+                <input type="file" id="file-input" accept=".fbx" style="display:none">
+                
+                <button id="demo-btn" class="demo-btn">
+                    <span>加载演示模型</span>
+                </button>
+                
+                <button id="reset-btn" class="reset-btn">
+                    <span>重置视图</span>
+                </button>
+            </div>
+            
+            <div class="model-info">
+                <h3>模型信息</h3>
+                <div class="stats">
+                    <p><span>模型名称:</span> <span id="model-name">未加载</span></p>
+                    <p><span>文件格式:</span> <span id="model-format">FBX</span></p>
+                    <p><span>顶点数:</span> <span id="model-vertices">0</span></p>
+                    <p><span>面数:</span> <span id="model-faces">0</span></p>
+                    <p><span>材质数量:</span> <span id="model-materials">0</span></p>
+                    <p><span>状态:</span> <span id="model-status">等待加载...</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Three.js FBX加载器 | 基于Three.js r128版本 | 完整功能的模型查看器 | &copy; 2023 3D可视化工具</p>
+    </div>
+
+    <!-- 添加所有必要的库 -->
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.3/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // 确保所有库加载完成后再执行初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const container = document.getElementById('viewport');
+            const fileInput = document.getElementById('file-input');
+            const uploadBtn = document.getElementById('upload-btn');
+            const demoBtn = document.getElementById('demo-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const status = document.getElementById('status');
+            const errorMessage = document.getElementById('error-message');
+            const rotateX = document.getElementById('rotate-x');
+            const rotateY = document.getElementById('rotate-y');
+            const rotateZ = document.getElementById('rotate-z');
+            const scaleSlider = document.getElementById('scale');
+            const wireframe = document.getElementById('wireframe');
+            const axesHelperCheck = document.getElementById('axes-helper');
+            const gridHelperCheck = document.getElementById('grid-helper');
+            
+            // 模型信息元素
+            const modelName = document.getElementById('model-name');
+            const modelVertices = document.getElementById('model-vertices');
+            const modelFaces = document.getElementById('model-faces');
+            const modelMaterials = document.getElementById('model-materials');
+            const modelStatus = document.getElementById('model-status');
+            
+            // Three.js变量
+            let scene, camera, renderer, controls;
+            let currentModel = null;
+            let axesHelper, gridHelper;
+            
+            // 显示状态信息
+            function updateStatus(message) {
+                status.textContent = message;
+                errorMessage.style.display = 'none';
+            }
+            
+            // 显示错误信息
+            function showError(message) {
+                status.textContent = "发生错误";
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                modelStatus.textContent = "错误: " + message;
+            }
+            
+            // 隐藏加载覆盖层
+            function hideLoading() {
+                loadingOverlay.style.display = 'none';
+            }
+            
+            // 初始化Three.js场景
+            function initThreeJS() {
+                updateStatus("正在初始化Three.js场景...");
+                
+                try {
+                    // 创建场景
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0x0c1729);
+                    scene.fog = new THREE.Fog(0x0a1a2d, 10, 30);
+                    
+                    // 创建相机
+                    camera = new THREE.PerspectiveCamera(
+                        45, 
+                        container.clientWidth / container.clientHeight, 
+                        0.1, 
+                        1000
+                    );
+                    camera.position.set(8, 5, 8);
+                    
+                    // 创建渲染器
+                    renderer = new THREE.WebGLRenderer({ 
+                        antialias: true,
+                        alpha: true
+                    });
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                    renderer.setPixelRatio(window.devicePixelRatio);
+                    renderer.shadowMap.enabled = true;
+                    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    container.appendChild(renderer.domElement);
+                    
+                    // 添加轨道控制器
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.05;
+                    controls.rotateSpeed = 0.8;
+                    controls.zoomSpeed = 1.2;
+                    controls.enableZoom = true;
+                    controls.enablePan = true;
+                    controls.minDistance = 1;
+                    controls.maxDistance = 50;
+                    
+                    // 添加光源
+                    const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+                    scene.add(ambientLight);
+                    
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                    directionalLight.position.set(8, 12, 10);
+                    directionalLight.castShadow = true;
+                    directionalLight.shadow.mapSize.width = 1024;
+                    directionalLight.shadow.mapSize.height = 1024;
+                    scene.add(directionalLight);
+                    
+                    const pointLight = new THREE.PointLight(0xff8844, 1.5, 30);
+                    pointLight.position.set(-6, 5, -8);
+                    pointLight.castShadow = true;
+                    scene.add(pointLight);
+                    
+                    // 添加坐标轴和网格辅助
+                    axesHelper = new THREE.AxesHelper(5);
+                    scene.add(axesHelper);
+                    
+                    gridHelper = new THREE.GridHelper(15, 15, 0x335588, 0x223366);
+                    gridHelper.position.y = -0.01;
+                    scene.add(gridHelper);
+                    
+                    updateStatus("场景初始化完成");
+                    
+                    // 加载默认演示模型
+                    setTimeout(loadDemoModel, 500);
+                    
+                } catch (error) {
+                    console.error("Three.js初始化错误:", error);
+                    showError("Three.js初始化失败: " + error.message);
+                }
+            }
+            
+            // 加载FBX模型
+            function loadFBXModel(file) {
+                updateStatus("正在加载FBX模型...");
+                modelStatus.textContent = "加载中...";
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        // 创建FBX加载器
+                        const loader = new THREE.FBXLoader();
+                        const model = loader.parse(event.target.result);
+                        
+                        // 移除当前模型
+                        if (currentModel) {
+                            scene.remove(currentModel);
+                        }
+                        
+                        // 添加模型到场景
+                        scene.add(model);
+                        currentModel = model;
+                        
+                        // 计算边界框并居中模型
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = new THREE.Vector3();
+                        box.getCenter(center);
+                        model.position.sub(center);
+                        
+                        // 计算缩放比例
+                        const size = box.getSize(new THREE.Vector3());
+                        const maxSize = Math.max(size.x, size.y, size.z);
+                        const scaleFactor = 6 / maxSize;
+                        model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                        
+                        // 更新模型信息
+                        let totalVertices = 0;
+                        let totalFaces = 0;
+                        let materialCount = 0;
+                        let meshCount = 0;
+                        
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                meshCount++;
+                                const geometry = child.geometry;
+                                if (geometry) {
+                                    totalVertices += geometry.attributes.position.count;
+                                    totalFaces += geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+                                }
+                                
+                                if (child.material) {
+                                    // 处理材质数组
+                                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+                                    materialCount += materials.length;
+                                }
+                            }
+                        });
+                        
+                        modelName.textContent = file.name;
+                        modelVertices.textContent = totalVertices.toLocaleString();
+                        modelFaces.textContent = totalFaces.toLocaleString();
+                        modelMaterials.textContent = materialCount.toLocaleString();
+                        modelStatus.textContent = "已加载";
+                        
+                        updateStatus("模型加载成功！");
+                        setTimeout(hideLoading, 1000);
+                        
+                    } catch (error) {
+                        console.error("FBX加载错误:", error);
+                        showError("FBX解析失败：" + error.message);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showError("无法读取文件");
+                };
+                
+                reader.readAsArrayBuffer(file);
+            }
+            
+            // 加载演示模型
+            function loadDemoModel() {
+                updateStatus("正在创建演示模型...");
+                
+                try {
+                    // 创建几何组
+                    const group = new THREE.Group();
+                    
+                    // 创建几何体
+                    const cone = new THREE.ConeGeometry(1.2, 2.5, 8);
+                    const sphere = new THREE.SphereGeometry(1.5, 24, 24);
+                    const box = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+                    const cylinder = new THREE.CylinderGeometry(1, 1, 2, 16);
+                    
+                    // 创建材质
+                    const coneMaterial = new THREE.MeshPhongMaterial({ 
+                        color: 0x3399ff,
+                        shininess: 80,
+                        wireframe: false
+                    });
+                    
+                    const sphereMaterial = new THREE.MeshPhongMaterial({ 
+                        color: 0xff6699,
+                        shininess: 100,
+                        wireframe: false
+                    });
+                    
+                    const boxMaterial = new THREE.MeshPhongMaterial({ 
+                        color: 0x66cc66,
+                        shininess: 90,
+                        wireframe: false
+                    });
+                    
+                    const cylinderMaterial = new THREE.MeshPhongMaterial({ 
+                        color: 0xffcc33,
+                        shininess: 70,
+                        wireframe: false
+                    });
+                    
+                    // 创建网格并设置位置
+                    const coneMesh = new THREE.Mesh(cone, coneMaterial);
+                    coneMesh.position.set(-3, 1.25, 0);
+                    
+                    const sphereMesh = new THREE.Mesh(sphere, sphereMaterial);
+                    sphereMesh.position.set(3, 1.5, 0);
+                    
+                    const boxMesh = new THREE.Mesh(box, boxMaterial);
+                    boxMesh.position.set(0, 0.9, -3);
+                    
+                    const cylinderMesh = new THREE.Mesh(cylinder, cylinderMaterial);
+                    cylinderMesh.position.set(0, 1, 3);
+                    
+                    // 添加到组
+                    group.add(coneMesh);
+                    group.add(sphereMesh);
+                    group.add(boxMesh);
+                    group.add(cylinderMesh);
+                    
+                    // 移除当前模型
+                    if (currentModel) {
+                        scene.remove(currentModel);
+                    }
+                    
+                    // 添加新模型
+                    scene.add(group);
+                    currentModel = group;
+                    
+                    // 更新模型信息
+                    modelName.textContent = "演示模型";
+                    modelVertices.textContent = (
+                        cone.attributes.position.count + 
+                        sphere.attributes.position.count + 
+                        box.attributes.position.count + 
+                        cylinder.attributes.position.count
+                    ).toLocaleString();
+                    
+                    modelFaces.textContent = (
+                        cone.index.count / 3 +
+                        sphere.index.count / 3 +
+                        box.index.count / 3 +
+                        cylinder.index.count / 3
+                    ).toLocaleString();
+                    
+                    modelMaterials.textContent = "4";
+                    modelStatus.textContent = "已加载";
+                    
+                    updateStatus("演示模型已加载");
+                    setTimeout(hideLoading, 1000);
+                    
+                } catch (error) {
+                    console.error("创建演示模型错误:", error);
+                    showError("创建演示模型失败: " + error.message);
+                }
+            }
+            
+            // 重置视图
+            function resetView() {
+                camera.position.set(8, 5, 8);
+                camera.lookAt(0, 0, 0);
+                if (controls) controls.reset();
+                
+                if (rotateX) rotateX.value = 0;
+                if (rotateY) rotateY.value = 0;
+                if (rotateZ) rotateZ.value = 0;
+                if (scaleSlider) scaleSlider.value = 1;
+                if (wireframe) wireframe.checked = false;
+                
+                if (currentModel) {
+                    currentModel.rotation.set(0, 0, 0);
+                    currentModel.scale.set(1, 1, 1);
+                    
+                    if (currentModel.children) {
+                        currentModel.traverse((child) => {
+                            if (child.isMesh) {
+                                child.material.wireframe = false;
+                            }
+                        });
+                    }
+                }
+            }
+            
+            // 动画循环
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                if (controls) {
+                    controls.update();
+                }
+                
+                if (renderer && scene && camera) {
+                    renderer.render(scene, camera);
+                }
+            }
+            
+            // 初始化事件监听器
+            function initEventListeners() {
+                uploadBtn.addEventListener('click', () => fileInput.click());
+                
+                fileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        if (file.name.toLowerCase().endsWith('.fbx')) {
+                            loadFBXModel(file);
+                        } else {
+                            showError("仅支持FBX格式文件");
+                        }
+                    }
+                });
+                
+                demoBtn.addEventListener('click', loadDemoModel);
+                resetBtn.addEventListener('click', resetView);
+                
+                // 控制事件监听
+                if (rotateX) {
+                    rotateX.addEventListener('input', (e) => {
+                        if (currentModel) currentModel.rotation.x = THREE.MathUtils.degToRad(e.target.value);
+                    });
+                }
+                
+                if (rotateY) {
+                    rotateY.addEventListener('input', (e) => {
+                        if (currentModel) currentModel.rotation.y = THREE.MathUtils.degToRad(e.target.value);
+                    });
+                }
+                
+                if (rotateZ) {
+                    rotateZ.addEventListener('input', (e) => {
+                        if (currentModel) currentModel.rotation.z = THREE.MathUtils.degToRad(e.target.value);
+                    });
+                }
+                
+                if (scaleSlider) {
+                    scaleSlider.addEventListener('input', (e) => {
+                        if (currentModel) {
+                            const scale = parseFloat(e.target.value);
+                            currentModel.scale.set(scale, scale, scale);
+                        }
+                    });
+                }
+                
+                if (wireframe) {
+                    wireframe.addEventListener('change', (e) => {
+                        if (currentModel && currentModel.children) {
+                            currentModel.traverse((child) => {
+                                if (child.isMesh && child.material) {
+                                    child.material.wireframe = e.target.checked;
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                if (axesHelperCheck) {
+                    axesHelperCheck.addEventListener('change', (e) => {
+                        if (axesHelper) axesHelper.visible = e.target.checked;
+                    });
+                }
+                
+                if (gridHelperCheck) {
+                    gridHelperCheck.addEventListener('change', (e) => {
+                        if (gridHelper) gridHelper.visible = e.target.checked;
+                    });
+                }
+                
+                // 响应窗口大小变化
+                window.addEventListener('resize', () => {
+                    if (camera && container) {
+                        camera.aspect = container.clientWidth / container.clientHeight;
+                        camera.updateProjectionMatrix();
+                    }
+                    if (renderer && container) {
+                        renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                });
+            }
+            
+            // 主初始化函数
+            function init() {
+                // 初始化Three.js场景
+                initThreeJS();
+                
+                // 初始化事件监听器
+                initEventListeners();
+                
+                // 启动动画循环
+                animate();
+            }
+            
+            // 开始初始化
+            init();
+        });
+    </script>
+</body>
+</html>
